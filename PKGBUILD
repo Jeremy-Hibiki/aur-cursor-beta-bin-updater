@@ -1,7 +1,7 @@
 # Maintainer: Gunther Schulz <dev@guntherschulz.de>
 
 pkgname=cursor-bin
-pkgver=1.3.4
+pkgver=1.4.2
 pkgrel=1
 pkgdesc='AI-first coding environment'
 arch=('x86_64')
@@ -12,10 +12,10 @@ depends=('ripgrep' 'xdg-utils'
   'gcc-libs' 'hicolor-icon-theme' 'libxkbfile')
 options=(!strip) # Don't break ext of VSCode
 _appimage="${pkgname}-${pkgver}.AppImage"
-_commit=bfb7c44bcb74430be0a6dd5edf885489879f2a2e
+_commit=d01860bc5f5a36b62f8a77cd42578126270db343
 source=("${_appimage}::https://downloads.cursor.com/production/${_commit}/linux/x64/Cursor-${pkgver}-x86_64.AppImage"
 https://gitlab.archlinux.org/archlinux/packaging/packages/code/-/raw/main/code.sh)
-sha512sums=('28d754953f10176dbbd977d8fce57b4a0fd0022344a13a393563b488d1aaf2809a165e0ce835a8835319ad0fb31ffdea82fdbd25ad9ebaabbe12005aacd13391'
+sha512sums=('4347b62fd647177c209fd9d232e5cc9ca864414a968f17eaef71772960d6b005f13f7910be4e30df605cb8345f9ef20566d29f309bb15d654e26ba76f8d62690'
             '937299c6cb6be2f8d25f7dbc95cf77423875c5f8353b8bd6cd7cc8e5603cbf8405b14dbf8bd615db2e3b36ed680fc8e1909410815f7f8587b7267a699e00ab37')
 
 _app=usr/share/cursor/resources/app
@@ -33,8 +33,11 @@ package() {
   ln -svf /usr/bin/rg ${_app}/node_modules/@vscode/ripgrep/bin/rg
   ln -svf /usr/bin/xdg-open ${_app}/node_modules/open/xdg-open
 
-  # Allop packaging with other electron by editing PKGBUILD
-  _electron=electron$(rg --no-messages -N -o -r '$1' '"electron": *"[^\d]*(\d+)' ${_app}/package.json)
+  _vscode=$(grep -oP '"vscodeVersion": "\K[^"]+' ${_app}/product.json)
+  # Insecure! Should be part of GitHub WF
+  curl -Ls https://github.com/microsoft/vscode/archive/refs/tags/${_vscode}.tar.gz | bsdtar -xf - vscode-${_vscode}/package-lock.json
+  # Allow packaging with other electron by sed'ding PKGBUILD
+  _electron=electron$(grep -oP '"electron": *"[^\d]*\K\d+' vscode-${_vscode}/package-lock.json)
   echo $_electron
   depends+=($_electron)
   mv usr "${pkgdir}"/usr
