@@ -106,6 +106,12 @@ try:
     # Check if DEBUG is set to true
     debug_mode = os.environ.get("DEBUG", "").lower() == "true"
 
+    # Check if version comparison protection is enabled (default: false)
+    version_protection = os.environ.get("VERSION_PROTECTION", "").lower() == "true"
+
+    # Check if commit-based update detection is enabled (default: true)
+    commit_based_updates = os.environ.get("COMMIT_BASED_UPDATES", "true").lower() == "true"
+
     # Get the latest commit, version, and download URL
     latest_commit, latest_version, download_url = get_latest_commit_and_version()
     if not latest_commit or not latest_version:
@@ -122,6 +128,8 @@ try:
     print(
         f"::debug::Local version: {local_version}, release: {local_rel}, commit: {local_commit}"
     )
+    print(f"::debug::Version protection enabled: {version_protection}")
+    print(f"::debug::Commit-based updates enabled: {commit_based_updates}")
 
     # Determine if update is needed
     aur_version, aur_rel, aur_commit = get_aur_pkgbuild_info()
@@ -136,31 +144,53 @@ try:
         and int(local_rel) > int(aur_rel)
     )
 
-    # Check if version or commit update is needed
-    version_update_needed = (
-        latest_version
-        and latest_version != local_version
-        and compare_versions(latest_version, local_version)
-    )
+    # Check if update is needed based on commit hash or version
+    if commit_based_updates:
+        # Primary update detection: commit hash changes
+        update_needed = latest_commit and latest_commit != local_commit
+        print(f"::debug::Commit-based update detection: {update_needed}")
+    else:
+        # Fallback to version-based detection
+        if version_protection:
+            # Only update if latest version is higher than local version
+            version_update_needed = (
+                latest_version
+                and latest_version != local_version
+                and compare_versions(latest_version, local_version)
+            )
+        else:
+            # Update if version is different (regardless of higher/lower)
+            version_update_needed = (
+                latest_version
+                and latest_version != local_version
+            )
 
-    commit_update_needed = latest_commit and latest_commit != local_commit
-
-    update_needed = version_update_needed or commit_update_needed or is_manual_rel_update
+        commit_update_needed = latest_commit and latest_commit != local_commit
+        update_needed = version_update_needed or commit_update_needed or is_manual_rel_update
+        print(f"::debug::Version-based update detection: {update_needed}")
 
     # Determine new_version, new_rel, and new_commit
     if update_needed:
-        if version_update_needed:
+        if commit_based_updates:
+            # For commit-based updates, always use latest version and commit
             new_version = latest_version
             new_commit = latest_commit
-            new_rel = "1"
-        elif commit_update_needed:
-            new_version = local_version
-            new_commit = latest_commit
+            # Increment release number for commit changes
             new_rel = str(int(local_rel) + 1)
-        elif is_manual_rel_update:
-            new_version = local_version
-            new_commit = local_commit
-            new_rel = local_rel  # Keep the manually set release number
+        else:
+            # Fallback to version-based logic
+            if version_update_needed:
+                new_version = latest_version
+                new_commit = latest_commit
+                new_rel = "1"
+            elif commit_update_needed:
+                new_version = local_version
+                new_commit = latest_commit
+                new_rel = str(int(local_rel) + 1)
+            elif is_manual_rel_update:
+                new_version = local_version
+                new_commit = local_commit
+                new_rel = local_rel  # Keep the manually set release number
     else:
         new_version = local_version
         new_rel = local_rel
