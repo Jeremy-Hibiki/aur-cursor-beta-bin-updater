@@ -181,9 +181,12 @@ try:
 
     # Check if update is needed based on commit hash or version
     if commit_based_updates:
-        # Primary update detection: commit hash changes
-        update_needed = latest_commit and latest_commit != local_commit
+        # Primary update detection: commit hash changes OR manual release bump
+        commit_update_needed = latest_commit and latest_commit != local_commit
+        update_needed = commit_update_needed or is_manual_rel_update
         print(f"::debug::Commit-based update detection: {update_needed}")
+        print(f"::debug::Commit update needed: {commit_update_needed}")
+        print(f"::debug::Manual release update needed: {is_manual_rel_update}")
     else:
         # Fallback to version-based detection
         if version_protection:
@@ -207,11 +210,17 @@ try:
     # Determine new_version, new_rel, and new_commit
     if update_needed:
         if commit_based_updates:
-            # For commit-based updates, always use latest version and commit
-            new_version = latest_version
-            new_commit = latest_commit
-            # Increment release number for commit changes
-            new_rel = str(int(local_rel) + 1)
+            if is_manual_rel_update:
+                # For manual release updates, keep current version and commit, use current release
+                new_version = local_version
+                new_commit = local_commit
+                new_rel = local_rel  # Keep the manually set release number
+            else:
+                # For commit-based updates, always use latest version and commit
+                new_version = latest_version
+                new_commit = latest_commit
+                # Increment release number for commit changes
+                new_rel = str(int(local_rel) + 1)
         else:
             # Fallback to version-based logic
             if version_update_needed:
