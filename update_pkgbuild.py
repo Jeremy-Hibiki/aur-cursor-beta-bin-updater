@@ -30,28 +30,15 @@ def calculate_sha512(url):
     return sha512_hash.hexdigest()
 
 
-def calculate_file_sha512(filepath):
-    """Calculate SHA512 of a local file."""
-    sha512_hash = hashlib.sha512()
-    with open(filepath, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            sha512_hash.update(chunk)
-    return sha512_hash.hexdigest()
-
-
 def update_pkgbuild(pkgbuild_lines, json_data):
-    download_link = json_data["download_link"]
     new_version = json_data["new_version"]
     new_rel = json_data["new_rel"]
+    new_commit = json_data["new_commit"]
 
-    # Calculate SHA512 when updating PKGBUILD
-    download_sha512 = calculate_sha512(download_link)
-    debug_print(f"Calculated SHA512: {download_sha512}")
-
-    # Calculate checksums for static files
-    cursor_png_checksum = calculate_file_sha512("cursor.png")
-    cursor_desktop_checksum = calculate_file_sha512("cursor-bin.desktop.in")
-    cursor_launcher_checksum = calculate_file_sha512("cursor-bin.sh")
+    # Calculate SHA512 for the new AppImage
+    appimage_url = f"https://downloads.cursor.com/production/{new_commit}/linux/x64/Cursor-{new_version}-x86_64.AppImage"
+    appimage_sha512 = calculate_sha512(appimage_url)
+    debug_print(f"Calculated AppImage SHA512: {appimage_sha512}")
 
     updated_lines = []
     in_sha = False
@@ -61,17 +48,20 @@ def update_pkgbuild(pkgbuild_lines, json_data):
             updated_lines.append(f"pkgver={new_version}\n")
         elif line.startswith("pkgrel="):
             updated_lines.append(f"pkgrel={new_rel}\n")
-        elif line.startswith("source_x86_64="):
-            updated_lines.append(
-                f'source_x86_64=("${{_appimage}}::{download_link}" "cursor.png" "${{pkgname}}.desktop.in" "${{pkgname}}.sh")\n'
-            )
-        elif line.startswith("sha512sums_x86_64="):
-            updated_lines.append(f"sha512sums_x86_64=('{download_sha512}'\n")
+        elif line.startswith("_commit="):
+            updated_lines.append(f"_commit={new_commit}\n")
+        elif line.startswith("source="):
+            # Update the source line with the new commit and version
+            updated_lines.append(f'source=("${{_appimage}}::https://downloads.cursor.com/production/{new_commit}/linux/x64/Cursor-{new_version}-x86_64.AppImage"\n')
+        elif line.startswith("https://gitlab.archlinux.org"):
+            # This is the second source line (code.sh)
+            updated_lines.append(line)
+        elif line.startswith("sha512sums="):
+            updated_lines.append(f"sha512sums=('{appimage_sha512}'\n")
             in_sha = True
         elif in_sha and line.strip().endswith(")"):
-            updated_lines.append(f"                   '{cursor_png_checksum}'\n")
-            updated_lines.append(f"                   '{cursor_desktop_checksum}'\n")
-            updated_lines.append(f"                   '{cursor_launcher_checksum}')\n")
+            # This is the last line of sha512sums, add the second checksum
+            updated_lines.append(f"            '937299c6cb6be2f8d25f7dbc95cf77423875c5f8353b8bd6cd7cc8e5603cbf8405b14dbf8bd615db2e3b36ed680fc8e1909410815f7f8587b7267a699e00ab37')\n")
             in_sha = False
         elif not in_sha:
             updated_lines.append(line)
@@ -102,7 +92,7 @@ if __name__ == "__main__":
         with open("PKGBUILD", "w") as f:
             f.writelines(updated_pkgbuild)
         debug_print(
-            f"PKGBUILD updated to version {check_output['new_version']} (release {check_output['new_rel']}) with new download link and SHA512"
+            f"PKGBUILD updated to version {check_output['new_version']} (release {check_output['new_rel']}) with commit {check_output['new_commit']}"
         )
     else:
         print("No update needed.")
