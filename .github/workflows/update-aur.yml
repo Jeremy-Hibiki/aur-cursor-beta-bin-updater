@@ -32,6 +32,11 @@ jobs:
           pip install requests packaging pyyaml
           echo "::endgroup::"
 
+          echo "::group::Installing system dependencies"
+          sudo apt-get update
+          sudo apt-get install -y squashfs-tools
+          echo "::endgroup::"
+
       - name: Check for updates
         id: check
         run: |
@@ -69,6 +74,17 @@ jobs:
           echo "::endgroup::"
           echo "Final PKGBUILD content:"
           cat PKGBUILD
+
+          echo "::group::Verifying Electron version"
+          if grep -q "_electron=" PKGBUILD; then
+            echo "✓ Electron version found in PKGBUILD:"
+            grep -A 2 -B 2 "_electron=" PKGBUILD
+          else
+            echo "❌ ERROR: Electron version line missing from PKGBUILD!"
+            echo "This will cause the package build to fail."
+            exit 1
+          fi
+          echo "::endgroup::"
 
       - name: Commit changes
         if: steps.update_needed.outputs.update_needed == 'true'

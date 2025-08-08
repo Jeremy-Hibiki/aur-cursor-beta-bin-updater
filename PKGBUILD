@@ -12,7 +12,7 @@ depends=('ripgrep' 'xdg-utils'
   'gcc-libs' 'hicolor-icon-theme' 'libxkbfile')
 options=(!strip) # Don't break ext of VSCode
 _appimage="${pkgname}-${pkgver}.AppImage"
-_commit=d01860bc5f5a36b62f8a77cd42578126270db343
+_commit=aaa
 source=("${_appimage}::https://downloads.cursor.com/production/d01860bc5f5a36b62f8a77cd42578126270db343/linux/x64/Cursor-1.4.2-x86_64.AppImage"
 https://gitlab.archlinux.org/archlinux/packaging/packages/code/-/raw/main/code.sh)
 sha512sums=('4347b62fd647177c209fd9d232e5cc9ca864414a968f17eaef71772960d6b005f13f7910be4e30df605cb8345f9ef20566d29f309bb15d654e26ba76f8d62690'
@@ -33,12 +33,8 @@ package() {
   ln -svf /usr/bin/rg ${_app}/node_modules/@vscode/ripgrep/bin/rg
   ln -svf /usr/bin/xdg-open ${_app}/node_modules/open/xdg-open
 
-  _vscode=$(grep -oP '"vscodeVersion": "\K[^"]+' ${_app}/product.json)
-  # Insecure! Should be part of GitHub WF
-  # Allow packaging with other electron by sed'ding PKGBUILD
-  _electron=electron$(curl -Ls https://raw.githubusercontent.com/microsoft/vscode/refs/tags/${_vscode}/package-lock.json | grep -oP '"electron": *"[^\d]*\K\d+')
-  #curl -Ls https://github.com/microsoft/vscode/archive/refs/tags/${_vscode}.tar.gz | bsdtar -xf - vscode-${_vscode}/package-lock.json
-  #_electron=electron$(grep -oP '"electron": *"[^\d]*\K\d+' vscode-${_vscode}/package-lock.json)
+  # Electron version determined during build process
+  _electron=electron28
   echo $_electron
   depends+=($_electron)
   mv usr "${pkgdir}"/usr
