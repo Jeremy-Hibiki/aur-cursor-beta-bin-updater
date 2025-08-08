@@ -10,6 +10,41 @@ import hashlib
 from packaging import version
 
 
+def get_electron_version(vscode_version):
+    """Get the Electron version from VSCode's package-lock.json."""
+    url = f"https://raw.githubusercontent.com/microsoft/vscode/refs/tags/{vscode_version}/package-lock.json"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+        " (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    }
+
+    max_retries = 3
+    for attempt in range(max_retries + 1):
+        try:
+            print(f"::debug::Fetching Electron version for VSCode {vscode_version}")
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+
+            # Parse the package-lock.json to find electron version
+            data = response.json()
+            if 'dependencies' in data and 'electron' in data['dependencies']:
+                electron_version = data['dependencies']['electron']['version']
+                # Extract major version number
+                major_version = electron_version.split('.')[0]
+                return f"electron{major_version}"
+            else:
+                raise ValueError("Electron dependency not found in package-lock.json")
+
+        except (requests.exceptions.RequestException, json.JSONDecodeError, ValueError) as e:
+            print(f"::warning::Failed to get Electron version (attempt {attempt + 1}): {str(e)}")
+            if attempt < max_retries:
+                print("::debug::Retrying in 2 seconds...")
+                time.sleep(2)
+
+    print("::error::Failed to determine Electron version after all retries")
+    return None
+
+
 def get_latest_commit_and_version():
     """Get the latest commit hash and version from Cursor's API."""
     cursor_url = "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
