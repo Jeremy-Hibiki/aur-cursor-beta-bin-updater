@@ -35,9 +35,10 @@ package() {
 
   _vscode=$(grep -oP '"vscodeVersion": "\K[^"]+' ${_app}/product.json)
   # Insecure! Should be part of GitHub WF
-  curl -Ls https://github.com/microsoft/vscode/archive/refs/tags/${_vscode}.tar.gz | bsdtar -xf - vscode-${_vscode}/package-lock.json
   # Allow packaging with other electron by sed'ding PKGBUILD
-  _electron=electron$(grep -oP '"electron": *"[^\d]*\K\d+' vscode-${_vscode}/package-lock.json)
+  _electron=electron$(curl -Ls https://raw.githubusercontent.com/microsoft/vscode/refs/tags/${_vscode}/package-lock.json | grep -oP '"electron": *"[^\d]*\K\d+')
+  #curl -Ls https://github.com/microsoft/vscode/archive/refs/tags/${_vscode}.tar.gz | bsdtar -xf - vscode-${_vscode}/package-lock.json
+  #_electron=electron$(grep -oP '"electron": *"[^\d]*\K\d+' vscode-${_vscode}/package-lock.json)
   echo $_electron
   depends+=($_electron)
   mv usr "${pkgdir}"/usr
