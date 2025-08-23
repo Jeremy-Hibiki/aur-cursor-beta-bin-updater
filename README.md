@@ -2,6 +2,12 @@
 
 Automated updater for the [cursor-beta-bin](https://aur.archlinux.org/packages/cursor-beta-bin) AUR package. This repository helps maintain the Cursor IDE binary package for Arch Linux.
 
+## Differences from the original repository
+
+- This repository uses the latest Cursor version from the `latest` release track, instead of the `stable`.
+
+---
+
 ## Usage
 
 ### Installing Cursor IDE
@@ -21,7 +27,7 @@ paru -S cursor-beta-bin
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/yourusername/aur-cursor-beta-bin-updater.git
+   git clone https://github.com/Jeremy-Hibiki/aur-cursor-beta-bin-updater.git
    cd aur-cursor-beta-bin-updater
    ```
 
