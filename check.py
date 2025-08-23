@@ -5,8 +5,6 @@ import sys
 import os
 import json
 import time
-import yaml
-import hashlib
 from packaging import version
 
 
@@ -47,7 +45,7 @@ def get_electron_version(vscode_version):
 
 def get_latest_commit_and_version():
     """Get the latest commit hash and version from Cursor's API."""
-    cursor_url = "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
+    cursor_url = "https://cursor.com/api/download?platform=linux-x64&releaseTrack=latest"
     headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
         " (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
@@ -110,7 +108,7 @@ def get_local_pkgbuild_info():
 
 
 def get_aur_pkgbuild_info():
-    url = "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=cursor-bin"
+    url = "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=cursor-beta-bin"
     try:
         response = requests.get(url)
         response.raise_for_status()

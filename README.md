@@ -1,6 +1,6 @@
-# aur-cursor-bin-updater
+# aur-cursor-beta-bin-updater
 
-Automated updater for the [cursor-bin](https://aur.archlinux.org/packages/cursor-bin) AUR package. This repository helps maintain the Cursor IDE binary package for Arch Linux.
+Automated updater for the [cursor-beta-bin](https://aur.archlinux.org/packages/cursor-beta-bin) AUR package. This repository helps maintain the Cursor IDE binary package for Arch Linux.
 
 ## Usage
 
@@ -10,10 +10,10 @@ If you just want to install Cursor IDE on Arch Linux, use your preferred AUR hel
 
 ```bash
 # Using yay
-yay -S cursor-bin
+yay -S cursor-beta-bin
 
 # Using paru
-paru -S cursor-bin
+paru -S cursor-beta-bin
 ```
 
 ### Maintaining/Contributing
@@ -21,8 +21,8 @@ paru -S cursor-bin
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/yourusername/aur-cursor-bin-updater.git
-   cd aur-cursor-bin-updater
+   git clone https://github.com/yourusername/aur-cursor-beta-bin-updater.git
+   cd aur-cursor-beta-bin-updater
    ```
 
 2. **Check for updates**:
@@ -60,8 +60,8 @@ paru -S cursor-bin
 - `PKGBUILD` - The main package build script
 - `check.py` - Script to check for new Cursor versions
 - `update_pkgbuild.py` - Script to update PKGBUILD automatically
-- `cursor-bin.desktop.in` - Desktop entry template
-- `cursor-bin.sh` - Launch script
+- `cursor-beta-bin.desktop.in` - Desktop entry template
+- `cursor-beta-bin.sh` - Launch script
 - `cursor.png` - Application icon
 
 ## Development Notes
