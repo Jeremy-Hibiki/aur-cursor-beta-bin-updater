@@ -220,8 +220,11 @@ try:
                 # For commit-based updates, always use latest version and commit
                 new_version = latest_version
                 new_commit = latest_commit
-                # Increment release number for commit changes
-                new_rel = str(int(local_rel) + 1)
+                # Reset pkgrel to 1 for version changes, increment for same version with different commit
+                if latest_version != local_version:
+                    new_rel = "1"  # New version, reset pkgrel
+                else:
+                    new_rel = str(int(local_rel) + 1)  # Same version, different commit, increment pkgrel
         else:
             # Fallback to version-based logic
             if version_update_needed:
