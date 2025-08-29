@@ -8,41 +8,6 @@ import time
 from packaging import version
 
 
-def get_electron_version(vscode_version):
-    """Get the Electron version from VSCode's package-lock.json."""
-    url = f"https://raw.githubusercontent.com/microsoft/vscode/refs/tags/{vscode_version}/package-lock.json"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-        " (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    }
-
-    max_retries = 3
-    for attempt in range(max_retries + 1):
-        try:
-            print(f"::debug::Fetching Electron version for VSCode {vscode_version}")
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-
-            # Parse the package-lock.json to find electron version
-            data = response.json()
-            if 'dependencies' in data and 'electron' in data['dependencies']:
-                electron_version = data['dependencies']['electron']['version']
-                # Extract major version number
-                major_version = electron_version.split('.')[0]
-                return f"electron{major_version}"
-            else:
-                raise ValueError("Electron dependency not found in package-lock.json")
-
-        except (requests.exceptions.RequestException, json.JSONDecodeError, ValueError) as e:
-            print(f"::warning::Failed to get Electron version (attempt {attempt + 1}): {str(e)}")
-            if attempt < max_retries:
-                print("::debug::Retrying in 2 seconds...")
-                time.sleep(2)
-
-    print("::error::Failed to determine Electron version after all retries")
-    return None
-
-
 def get_latest_commit_and_version():
     """Get the latest commit hash and version from Cursor's API."""
     cursor_url = "https://cursor.com/api/download?platform=linux-x64&releaseTrack=latest"
@@ -73,9 +38,7 @@ def get_latest_commit_and_version():
 
             else:
                 print("::warning::Invalid response from Cursor API")
-                raise requests.exceptions.RequestException(
-                    "Invalid response from Cursor API"
-                )
+                raise requests.exceptions.RequestException("Invalid response from Cursor API")
 
         except requests.exceptions.RequestException as e:
             print(f"::warning::Request failed: {str(e)}")
@@ -101,9 +64,7 @@ def get_local_pkgbuild_info():
     if version_match and rel_match and commit_match:
         return version_match.group(1).strip(), rel_match.group(1), commit_match.group(1)
     else:
-        print(
-            f"::error::Unable to find current version, release, or commit in local PKGBUILD"
-        )
+        print("::error::Unable to find current version, release, or commit in local PKGBUILD")
         return None, None, None
 
 
@@ -119,7 +80,7 @@ def get_aur_pkgbuild_info():
         if version_match and rel_match and commit_match:
             return version_match.group(1).strip(), rel_match.group(1), commit_match.group(1)
         else:
-            print(f"::warning::Unable to find version, release, or commit in AUR PKGBUILD")
+            print("::warning::Unable to find version, release, or commit in AUR PKGBUILD")
             return None, None, None
     except Exception as e:
         print(f"::warning::Error fetching AUR PKGBUILD: {str(e)}")
@@ -158,9 +119,7 @@ try:
     if local_version is None or local_rel is None or local_commit is None:
         raise ValueError("Failed to get local version, release, or commit")
 
-    print(
-        f"::debug::Local version: {local_version}, release: {local_rel}, commit: {local_commit}"
-    )
+    print(f"::debug::Local version: {local_version}, release: {local_rel}, commit: {local_commit}")
     print(f"::debug::Version protection enabled: {version_protection}")
     print(f"::debug::Commit-based updates enabled: {commit_based_updates}")
 
@@ -180,7 +139,8 @@ try:
     # Check if update is needed based on commit hash or version
     if commit_based_updates:
         # Primary update detection: commit hash changes OR manual release bump
-        commit_update_needed = latest_commit and latest_commit != local_commit
+        # Compare against AUR commit, not local commit, to determine if AUR needs updating
+        commit_update_needed = latest_commit and latest_commit != aur_commit
         update_needed = commit_update_needed or is_manual_rel_update
         print(f"::debug::Commit-based update detection: {update_needed}")
         print(f"::debug::Commit update needed: {commit_update_needed}")
@@ -190,18 +150,13 @@ try:
         if version_protection:
             # Only update if latest version is higher than local version
             version_update_needed = (
-                latest_version
-                and latest_version != local_version
-                and compare_versions(latest_version, local_version)
+                latest_version and latest_version != local_version and compare_versions(latest_version, local_version)
             )
         else:
             # Update if version is different (regardless of higher/lower)
-            version_update_needed = (
-                latest_version
-                and latest_version != local_version
-            )
+            version_update_needed = latest_version and latest_version != local_version
 
-        commit_update_needed = latest_commit and latest_commit != local_commit
+        commit_update_needed = latest_commit and latest_commit != aur_commit
         update_needed = version_update_needed or commit_update_needed or is_manual_rel_update
         print(f"::debug::Version-based update detection: {update_needed}")
 
@@ -217,8 +172,11 @@ try:
                 # For commit-based updates, always use latest version and commit
                 new_version = latest_version
                 new_commit = latest_commit
-                # Increment release number for commit changes
-                new_rel = str(int(local_rel) + 1)
+                # Reset pkgrel to 1 for version changes, increment for same version with different commit
+                if latest_version != local_version:
+                    new_rel = "1"  # New version, reset pkgrel
+                else:
+                    new_rel = str(int(local_rel) + 1)  # Same version, different commit, increment pkgrel
         else:
             # Fallback to version-based logic
             if version_update_needed:
@@ -261,7 +219,7 @@ try:
     with open("check_output.json", "w") as f:
         json.dump(output, f)
 
-    print(f"::debug::Check output written to check_output.json")
+    print("::debug::Check output written to check_output.json")
     print(f"::debug::Final new_version: {new_version}, new_rel: {new_rel}, new_commit: {new_commit}")
 
 except Exception as e:
