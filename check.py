@@ -68,10 +68,36 @@ def get_local_pkgbuild_info():
         return None, None, None
 
 
+def check_aur_availability():
+    """Fast fail check for AUR availability."""
+    url = "https://aur.archlinux.org"
+    try:
+        # Quick connectivity check with short timeout
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return True
+    except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
+        print(f"::error::AUR is not available: {str(e)}")
+        print("::error::Fast failing due to AUR unavailability (network down, server down, or maintenance)")
+        return False
+
+
 def get_aur_pkgbuild_info():
+    """Get AUR PKGBUILD info with fast fail if AUR is unavailable."""
+    # Fast fail check first
+    if not check_aur_availability():
+        print("::error::Aborting AUR operations due to unavailability")
+        sys.exit(1)
+    
     url = "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=cursor-beta-bin"
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=30)
+        
+        # Handle 404 specifically - return None like old behavior
+        if response.status_code == 404:
+            print("::warning::AUR PKGBUILD not found (404)")
+            return None, None, None
+        
         response.raise_for_status()
         content = response.text
         version_match = re.search(r"pkgver=([^\n]+)", content)
@@ -82,9 +108,10 @@ def get_aur_pkgbuild_info():
         else:
             print("::warning::Unable to find version, release, or commit in AUR PKGBUILD")
             return None, None, None
-    except Exception as e:
-        print(f"::warning::Error fetching AUR PKGBUILD: {str(e)}")
-        return None, None, None
+    except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
+        print(f"::error::Error fetching AUR PKGBUILD: {str(e)}")
+        print("::error::Fast failing due to AUR request failure")
+        sys.exit(1)
 
 
 def compare_versions(version1, version2):
