@@ -92,6 +92,12 @@ def get_aur_pkgbuild_info():
     url = "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=cursor-beta-bin"
     try:
         response = requests.get(url, timeout=30)
+        
+        # Handle 404 specifically - return None like old behavior
+        if response.status_code == 404:
+            print("::warning::AUR PKGBUILD not found (404)")
+            return None, None, None
+        
         response.raise_for_status()
         content = response.text
         version_match = re.search(r"pkgver=([^\n]+)", content)
